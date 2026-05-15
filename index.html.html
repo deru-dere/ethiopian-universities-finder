@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ethiopian Universities Finder</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --green: #1B6B3A;
+    --gold: #F5A623;
+    --red: #C8102E;
+    /* Dark Mode Defaults */
+    --dark: #0D1117;
+    --card: #161B22;
+    --border: #30363D;
+    --text: #E6EDF3;
+    --muted: #8B949E;
+    --modal-bg: rgba(0,0,0,0.85);
+  }
+
+  [data-theme="light"] {
+    --dark: #F0F4F8;
+    --card: #FFFFFF;
+    --border: #D1D9E0;
+    --text: #1F2328;
+    --muted: #59636E;
+    --modal-bg: rgba(255,255,255,0.85);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--dark); color: var(--text); font-family: 'DM Sans', sans-serif; min-height: 100vh; transition: background 0.3s, color 0.3s; }
+
+  /* Theme Toggle */
+  .theme-toggle {
+    position: absolute; top: 20px; right: 20px;
+    background: var(--card); border: 1px solid var(--border);
+    color: var(--text); padding: 8px 12px; border-radius: 20px;
+    cursor: pointer; font-family: 'DM Sans', sans-serif; font-weight: 600;
+    z-index: 10; transition: all 0.2s;
+  }
+  .theme-toggle:hover { border-color: var(--gold); }
+
+  .hero {
+    background: linear-gradient(135deg, var(--dark) 0%, #1a2a1a 50%, var(--dark) 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 20px 40px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '🇪🇹';
+    position: absolute;
+    font-size: 300px;
+    opacity: 0.04;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    pointer-events: none;
+  }
+  .flag-bar { display: flex; justify-content: center; margin-bottom: 28px; }
+  .flag-bar span { width: 40px; height: 6px; border-radius: 3px; }
+  .flag-bar span:nth-child(1) { background: var(--green); }
+  .flag-bar span:nth-child(2) { background: var(--gold); }
+  .flag-bar span:nth-child(3) { background: var(--red); }
+  h1 { font-family: 'Playfair Display', serif; font-size: clamp(2rem, 5vw, 3.5rem); font-weight: 900; line-height: 1.1; margin-bottom: 12px; }
+  h1 span { color: var(--gold); }
+  .subtitle { color: var(--muted); font-size: 1.1rem; font-weight: 300; max-width: 500px; margin: 0 auto 32px; }
+  .stats { display: flex; justify-content: center; gap: 40px; flex-wrap: wrap; }
+  .stat-num { font-family: 'Playfair Display', serif; font-size: 2rem; font-weight: 700; color: var(--gold); }
+  .stat-label { font-size: 0.75rem; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; }
+
+  .filters {
+    background: var(--card);
+    border-bottom: 1px solid var(--border);
+    padding: 24px 20px;
+    position: sticky; top: 0; z-index: 100;
+  }
+  .filters-inner { max-width: 1100px; margin: 0 auto; display: flex; gap: 12px; flex-wrap: wrap; align-items: center; }
+  .search-box { flex: 1; min-width: 200px; position: relative; }
+  .search-box input {
+    width: 100%; background: var(--dark); border: 1px solid var(--border);
+    color: var(--text); padding: 10px 16px 10px 40px; border-radius: 8px;
+    font-family: 'DM Sans', sans-serif; font-size: 0.95rem; outline: none; transition: border-color 0.2s;
+  }
+  .search-box input:focus { border-color: var(--gold); }
+  .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+  select {
+    background: var(--dark); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 14px; border-radius: 8px; font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem; outline: none; cursor: pointer;
+  }
+  select:focus { border-color: var(--gold); }
+  .filter-btn {
+    background: var(--gold); color: #000; border: none; padding: 10px 20px;
+    border-radius: 8px; font-family: 'DM Sans', sans-serif; font-size: 0.9rem;
+    font-weight: 600; cursor: pointer;
+  }
+
+  .results-bar { max-width: 1100px; margin: 24px auto 16px; padding: 0 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+  .results-count { color: var(--muted); font-size: 0.9rem; }
+  .results-count strong { color: var(--gold); }
+  .sort-row { display: flex; gap: 8px; align-items: center; color: var(--muted); font-size: 0.85rem; }
+
+  .grid { max-width: 1100px; margin: 0 auto; padding: 0 20px 60px; display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 20px; }
+
+  .card {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    overflow: hidden; transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
+    animation: fadeUp 0.4s ease both; display: flex; flex-direction: column;
+  }
+  .card:hover { transform: translateY(-4px); border-color: var(--gold); box-shadow: 0 8px 32px rgba(245,166,35,0.15); }
+  @keyframes fadeUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+
+  .card-header { padding: 20px 20px 16px; border-bottom: 1px solid var(--border); display: flex; align-items: flex-start; gap: 14px; }
+  .uni-emoji { font-size: 2.2rem; flex-shrink: 0; }
+  .uni-name { font-family: 'Playfair Display', serif; font-size: 1.1rem; font-weight: 700; line-height: 1.3; margin-bottom: 4px; }
+  .uni-location { color: var(--muted); font-size: 0.82rem; display: flex; align-items: center; gap: 6px; flex-wrap: wrap; }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: 0.72rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; }
+  .badge-public { background: rgba(27,107,58,0.2); color: #4CAF50; border: 1px solid rgba(76,175,80,0.3); }
+  .badge-private { background: rgba(245,166,35,0.15); color: var(--gold); border: 1px solid rgba(245,166,35,0.3); }
+
+  .card-body { padding: 16px 20px; flex-grow: 1; display: flex; flex-direction: column; }
+  .info-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-bottom: 1px solid rgba(139, 148, 158, 0.2); font-size: 0.88rem; }
+  .info-row:last-of-type { border-bottom: none; }
+  .info-label { color: var(--muted); }
+  .info-value { font-weight: 500; text-align: right; max-width: 60%; }
+  .info-value a { color: var(--gold); text-decoration: none; }
+  .info-value a:hover { text-decoration: underline; }
+  .cutoff-value { font-family: 'Playfair Display', serif; font-size: 1.1rem; color: var(--gold); font-weight: 700; }
+
+  .faculties { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; margin-bottom: 14px; }
+  .faculty-tag { background: rgba(245,166,35,0.1); border: 1px solid rgba(245,166,35,0.2); color: var(--gold); padding: 3px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 500; }
+
+  .card-actions { margin-top: auto; display: flex; gap: 10px; }
+  .add-compare {
+    background: none; border: 1px dashed var(--border); color: var(--text);
+    padding: 8px 14px; border-radius: 8px; cursor: pointer; font-size: 0.82rem;
+    transition: all 0.2s; font-family: 'DM Sans', sans-serif; flex: 1;
+  }
+  .add-compare:hover { border-color: var(--gold); color: var(--gold); }
+  .add-compare.selected { background: rgba(245,166,35,0.15); border-color: var(--gold); color: var(--gold); border-style: solid; }
+  
+  .map-btn {
+    background: var(--dark); border: 1px solid var(--border); color: var(--text);
+    padding: 8px; border-radius: 8px; cursor: pointer; display: flex; align-items: center; justify-content: center;
+    text-decoration: none; transition: border-color 0.2s;
+  }
+  .map-btn:hover { border-color: var(--gold); }
+
+  .no-results { text-align: center; padding: 80px 20px; color: var(--muted); grid-column: 1/-1; }
+  .no-results .emoji { font-size: 3rem; display: block; margin-bottom: 16px; }
+
+  .compare-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--card); border-top: 2px solid var(--gold);
+    padding: 14px 20px; display: none; align-items: center;
+    justify-content: space-between; gap: 12px; z-index: 200; flex-wrap: wrap;
+    box-shadow: 0 -4px 20px rgba(0,0,0,0.2);
+  }
+  .compare-bar.active { display: flex; }
+  .compare-names { display: flex; gap: 10px; flex-wrap: wrap; }
+  .compare-chip { background: rgba(245,166,35,0.15); border: 1px solid var(--gold); color: var(--gold); padding: 4px 12px; border-radius: 20px; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; }
+  .compare-chip button { background: none; border: none; color: var(--gold); cursor: pointer; font-size: 1rem; line-height: 1; padding: 0; }
+  .compare-actions { display: flex; gap: 10px; }
+  .btn-compare { background: var(--gold); color: #000; border: none; padding: 8px 20px; border-radius: 8px; font-family: 'DM Sans', sans-serif; font-weight: 600; cursor: pointer; font-size: 0.9rem; }
+  .btn-clear { background: transparent; color: var(--muted); border: 1px solid var(--border); padding: 8px 16px; border-radius: 8px; font-family: 'DM Sans', sans-serif; cursor: pointer; font-size: 0.9rem; }
+
+  .modal-overlay { display: none; position: fixed; inset: 0; background: var(--modal-bg); z-index: 300; padding: 20px; overflow-y: auto; }
+  .modal-overlay.active { display: flex; align-items: flex-start; justify-content: center; }
+  .modal { background: var(--card); border: 1px solid var(--border); border-radius: 16px; width: 100%; max-width: 1000px; margin: auto; padding: 32px; position: relative; }
+  .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+  .modal h2 { font-family: 'Playfair Display', serif; font-size: 1.6rem; color: var(--gold); margin: 0; }
+  .modal-controls { display: flex; gap: 12px; align-items: center; }
+  .export-btn { background: var(--dark); color: var(--text); border: 1px solid var(--border); padding: 6px 12px; border-radius: 6px; cursor: pointer; font-size: 0.85rem; }
+  .export-btn:hover { border-color: var(--gold); color: var(--gold); }
+  .modal-close { background: var(--dark); border: 1px solid var(--border); color: var(--text); width: 32px; height: 32px; border-radius: 50%; cursor: pointer; font-size: 1.1rem; display: flex; align-items: center; justify-content: center; }
+  .compare-table { width: 100%; border-collapse: collapse; font-size: 0.9rem; }
+  .compare-table th { background: var(--dark); padding: 12px 16px; text-align: left; font-family: 'Playfair Display', serif; border: 1px solid var(--border); color: var(--gold); }
+  .compare-table td { padding: 12px 16px; border: 1px solid var(--border); vertical-align: top; color: var(--text); }
+  .compare-table tr:nth-child(even) td { background: rgba(139, 148, 158, 0.05); }
+  .compare-table .row-label { color: var(--muted); font-weight: 500; background: var(--dark); white-space: nowrap; }
+  .highlight { color: var(--gold); font-weight: 600; }
+
+  footer { text-align: center; padding: 20px; color: var(--muted); font-size: 0.8rem; border-top: 1px solid var(--border); margin-top: 40px; }
+  footer strong { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<button class="theme-toggle" onclick="toggleTheme()" id="themeBtn">☀️ Light Mode</button>
+
+<div class="hero">
+  <div class="flag-bar"><span></span><span></span><span></span></div>
+  <h1>Ethiopian <span>Universities</span><br>Finder & Comparison</h1>
+  <p class="subtitle">Explore, filter and compare Ethiopian universities to find your perfect match</p>
+  <div class="stats">
+    <div class="stat"><div class="stat-num" id="totalCount">40</div><div class="stat-label">Universities</div></div>
+    <div class="stat"><div class="stat-num">12+</div><div class="stat-label">Regions / Charters</div></div>
+    <div class="stat"><div class="stat-num">50+</div><div class="stat-label">Faculties</div></div>
+  </div>
+</div>
+
+<div class="filters">
+  <div class="filters-inner">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search university name or city...">
+    </div>
+    <select id="regionFilter">
+      <option value="">All Regions</option>
+      <option>Addis Ababa</option><option>Oromia</option><option>Amhara</option>
+      <option>Tigray</option><option>South Ethiopia</option><option>Sidama</option>
+      <option>Harari</option><option>Dire Dawa</option><option>Somali</option>
+      <option>Benishangul-Gumuz</option><option>Afar</option><option>Gambella</option>
+    </select>
+    <select id="typeFilter">
+      <option value="">All Types</option>
+      <option>Public</option><option>Private</option>
+    </select>
+    <select id="facultyFilter">
+      <option value="">All Faculties</option>
+      <option>Engineering</option><option>Medicine & Health</option><option>Business</option>
+      <option>Law</option><option>Agriculture</option><option>Natural Science</option>
+      <option>Social Science</option><option>Education</option><option>IT & Computing</option>
+      <option>Architecture</option><option>Veterinary Medicine</option>
+    </select>
+    <button class="filter-btn" onclick="resetFilters()">Reset</button>
+  </div>
+</div>
+
+<div class="results-bar">
+  <div class="results-count">Showing <strong id="showingCount">0</strong> universities</div>
+  <div class="sort-row">
+    Sort by:
+    <select id="sortFilter" onchange="renderCards()">
+      <option value="name">Name</option>
+      <option value="cutoff">EUEE Threshold (Est)</option>
+      <option value="founded">Year Founded</option>
+    </select>
+  </div>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="compare-bar" id="compareBar">
+  <div class="compare-names" id="compareNames"></div>
+  <div class="compare-actions">
+    <button class="btn-clear" onclick="clearCompare()">Clear</button>
+    <button class="btn-compare" onclick="openCompare()">Compare Now →</button>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>University Comparison</h2>
+      <div class="modal-controls">
+        <button class="export-btn" onclick="exportCSV()">📥 Export CSV</button>
+        <button class="modal-close" onclick="closeCompare()">×</button>
+      </div>
+    </div>
+    <div style="overflow-x:auto;">
+      <table class="compare-table" id="compareTable"></table>
+    </div>
+  </div>
+</div>
+
+<footer>
+  Built with ❤️ for Ethiopian students &nbsp;|&nbsp; Data reflects general estimates and historical records. EUEE thresholds fluctuate yearly based on MoE guidelines.
+</footer>
+
+<script>
+// Data updated: all 40 public universities per MoE lists, corrected founding dates, websites, regions, faculties and student figures.
+const universities = [
+  { name:"Addis Ababa University", emoji:"🏛️", location:"Addis Ababa", region:"Addis Ababa", type:"Public", founded:1950, cutoff:380, students:"40,000–50,000", website:"aau.edu.et", mapQ:"Addis+Ababa+University", faculties:["Engineering","Medicine & Health","Business","Law","Natural Science","Social Science","Architecture","Education"], scholarships:"Govt-funded undergrad; merit & need-based postgrad assistantships" },
+  { name:"Addis Ababa Science & Technology University", emoji:"🔬", location:"Addis Ababa", region:"Addis Ababa", type:"Public", founded:2011, cutoff:400, students:"Tens of thousands", website:"aastu.edu.et", mapQ:"Addis+Ababa+Science+and+Technology+University", faculties:["Engineering","Architecture","Natural Science","IT & Computing"], scholarships:"Govt-funded undergrad; limited institutional aid" },
+  { name:"Adama Science & Technology University", emoji:"⚙️", location:"Adama, Oromia", region:"Oromia", type:"Public", founded:1993, cutoff:400, students:"Medium-large", website:"astu.edu.et", mapQ:"Adama+Science+and+Technology+University", faculties:["Engineering","IT & Computing","Natural Science","Architecture","Business"], scholarships:"Govt sponsorship; occasional competitive scholarships" },
+  { name:"Jimma University", emoji:"🧪", location:"Jimma, Oromia", region:"Oromia", type:"Public", founded:1999, cutoff:350, students:"30,000+", website:"ju.edu.et", mapQ:"Jimma+University", faculties:["Medicine & Health","Agriculture","Natural Science","Business","Social Science","Education","Engineering"], scholarships:"Govt-funded undergrad; some postgrad & international sponsorships" },
+  { name:"Bahir Dar University", emoji:"🌊", location:"Bahir Dar, Amhara", region:"Amhara", type:"Public", founded:2001, cutoff:345, students:"Large", website:"bdu.edu.et", mapQ:"Bahir+Dar+University", faculties:["Engineering","Agriculture","Business","Education","Natural Science","Social Science","Law"], scholarships:"Govt-funded; limited merit-based & externally funded scholarships" },
+  { name:"University of Gondar", emoji:"👑", location:"Gondar, Amhara", region:"Amhara", type:"Public", founded:1954, cutoff:345, students:"Large", website:"uog.edu.et", mapQ:"University+of+Gondar", faculties:["Medicine & Health","Business","Social Science","Natural Science","Agriculture","Veterinary Medicine","Law","Education"], scholarships:"Govt sponsorship; international program-linked scholarships (especially health)" },
+  { name:"Hawassa University", emoji:"🌿", location:"Hawassa, Sidama", region:"Sidama", type:"Public", founded:2000, cutoff:345, students:"Large", website:"hu.edu.et", mapQ:"Hawassa+University", faculties:["Agriculture","Medicine & Health","Business","Natural Science","Social Science","Law","Education","Engineering"], scholarships:"Govt-funded undergrad; some competitive scholarships & research grants" },
+  { name:"Mekelle University", emoji:"⛰️", location:"Mekelle, Tigray", region:"Tigray", type:"Public", founded:2000, cutoff:340, students:"Large", website:"mu.edu.et", mapQ:"Mekelle+University", faculties:["Engineering","Medicine & Health","Business","Natural Science","Agriculture","Social Science","Law"], scholarships:"Govt funding; some aid via projects & partnerships" },
+  { name:"Haramaya University", emoji:"🌾", location:"Haramaya, Oromia", region:"Oromia", type:"Public", founded:1954, cutoff:330, students:"Large", website:"haramaya.edu.et", mapQ:"Haramaya+University", faculties:["Agriculture","Natural Science","Business","Education","Medicine & Health","Veterinary Medicine","Social Science","Law"], scholarships:"Govt funding; agriculture & health project-linked scholarships" },
+  { name:"Ethiopian Civil Service University", emoji:"📜", location:"Addis Ababa", region:"Addis Ababa", type:"Public", founded:1995, cutoff:330, students:"Several thousand", website:"ecsu.edu.et", mapQ:"Ethiopian+Civil+Service+University", faculties:["Law","Business","Social Science","IT & Computing"], scholarships:"Most students sponsored by federal or regional govt institutions" },
+  { name:"Arba Minch University", emoji:"🦛", location:"Arba Minch, South Ethiopia", region:"South Ethiopia", type:"Public", founded:1986, cutoff:335, students:"Medium-large", website:"amu.edu.et", mapQ:"Arba+Minch+University", faculties:["Engineering","Agriculture","Natural Science","Business","Social Science","Medicine & Health"], scholarships:"Govt-funded; competitive scholarships in engineering & water projects" },
+  { name:"Kotebe University of Education", emoji:"📚", location:"Addis Ababa", region:"Addis Ababa", type:"Public", founded:2010, cutoff:310, students:"Medium", website:"kue.edu.et", mapQ:"Kotebe+University+of+Education+Addis+Ababa", faculties:["Education","Social Science","Natural Science"], scholarships:"Govt-funded teacher-training programs" },
+  { name:"Ambo University", emoji:"🌄", location:"Ambo, Oromia", region:"Oromia", type:"Public", founded:2007, cutoff:315, students:"Medium-large", website:"ambou.edu.et", mapQ:"Ambo+University", faculties:["Agriculture","Business","Social Science","Natural Science","Medicine & Health","Engineering","Law","Education"], scholarships:"Govt-funded regular students" },
+  { name:"Dire Dawa University", emoji:"🏜️", location:"Dire Dawa", region:"Dire Dawa", type:"Public", founded:2006, cutoff:320, students:"Medium", website:"ddu.edu.et", mapQ:"Dire+Dawa+University", faculties:["Engineering","Business","Natural Science","Social Science","Education"], scholarships:"Govt-funded regular program; limited additional scholarships" },
+  { name:"Wollega University", emoji:"🌳", location:"Nekemte, Oromia", region:"Oromia", type:"Public", founded:2007, cutoff:315, students:"Medium-large", website:"wollegauniversity.edu.et", mapQ:"Wollega+University", faculties:["Agriculture","Natural Science","Business","Education","Engineering","Medicine & Health","Social Science"], scholarships:"Govt funding; some program-specific support" },
+  { name:"Dilla University", emoji:"🍵", location:"Dilla, South Ethiopia", region:"South Ethiopia", type:"Public", founded:2004, cutoff:310, students:"Medium", website:"du.edu.et", mapQ:"Dilla+University", faculties:["Natural Science","Business","Social Science","Education","Agriculture","Medicine & Health"], scholarships:"Mainly govt funding; limited institutional scholarships" },
+  { name:"Jijiga University", emoji:"🏕️", location:"Jijiga, Somali Region", region:"Somali", type:"Public", founded:2007, cutoff:300, students:"Medium", website:"jju.edu.et", mapQ:"Jijiga+University", faculties:["Natural Science","Business","Social Science","Education","Agriculture","Medicine & Health"], scholarships:"Govt-funded regular undergraduates" },
+  { name:"Samara University", emoji:"🌵", location:"Semera, Afar", region:"Afar", type:"Public", founded:2006, cutoff:300, students:"Medium", website:"su.edu.et", mapQ:"Samara+University+Afar", faculties:["Natural Science","Business","Social Science","Education","Agriculture","Engineering"], scholarships:"Govt-funded regular students" },
+  { name:"Assosa University", emoji:"🌲", location:"Assosa, Benishangul-Gumuz", region:"Benishangul-Gumuz", type:"Public", founded:2011, cutoff:295, students:"Small-medium", website:"asu.edu.et", mapQ:"Assosa+University", faculties:["Natural Science","Business","Education","Agriculture","Social Science"], scholarships:"Govt-funded regular students" },
+  { name:"Harari People's Regional State University", emoji:"🕌", location:"Harar, Harari", region:"Harari", type:"Public", founded:2016, cutoff:295, students:"Small (regional)", website:"", mapQ:"Harar+University+Ethiopia", faculties:["Business","Education","Social Science","Natural Science"], scholarships:"Govt-funded regular students" },
+  { name:"Arsi University", emoji:"🌻", location:"Asella, Oromia", region:"Oromia", type:"Public", founded:2013, cutoff:315, students:"Medium", website:"arsiun.edu.et", mapQ:"Arsi+University+Asella", faculties:["Medicine & Health","Agriculture","Business","Education","Natural Science","Social Science"], scholarships:"Govt-funded regular students" },
+  { name:"Debre Berhan University", emoji:"🏔️", location:"Debre Berhan, Amhara", region:"Amhara", type:"Public", founded:2007, cutoff:315, students:"Medium", website:"dbu.edu.et", mapQ:"Debre+Berhan+University", faculties:["Business","Social Science","Natural Science","Education","Medicine & Health","Agriculture","Engineering"], scholarships:"Govt financing" },
+  { name:"Debre Markos University", emoji:"✏️", location:"Debre Markos, Amhara", region:"Amhara", type:"Public", founded:2005, cutoff:315, students:"Medium", website:"dmu.edu.et", mapQ:"Debre+Markos+University", faculties:["Business","Natural Science","Social Science","Medicine & Health","Law","Agriculture","Engineering"], scholarships:"Govt-funded undergrad places" },
+  { name:"Debre Tabor University", emoji:"🕊️", location:"Debre Tabor, Amhara", region:"Amhara", type:"Public", founded:2009, cutoff:305, students:"Medium (regional)", website:"dtu.edu.et", mapQ:"Debre+Tabor+University", faculties:["Natural Science","Social Science","Agriculture","Business","Medicine & Health","Education"], scholarships:"Govt-funded regular students" },
+  { name:"Wollo University", emoji:"🌅", location:"Dessie & Kombolcha, Amhara", region:"Amhara", type:"Public", founded:2005, cutoff:315, students:"Medium-large", website:"wu.edu.et", mapQ:"Wollo+University+Dessie", faculties:["Business","Natural Science","Social Science","Agriculture","Medicine & Health","Engineering","Law","Education"], scholarships:"Govt funding" },
+  { name:"Wolaita Sodo University", emoji:"🫙", location:"Wolaita Sodo, South Ethiopia", region:"South Ethiopia", type:"Public", founded:2007, cutoff:310, students:"Medium-large", website:"wsu.edu.et", mapQ:"Wolaita+Sodo+University", faculties:["Agriculture","Natural Science","Business","Social Science","Medicine & Health","Engineering","Education"], scholarships:"Govt-funded regular students" },
+  { name:"Wachemo University", emoji:"🏞️", location:"Hosaena, South Ethiopia", region:"South Ethiopia", type:"Public", founded:2012, cutoff:305, students:"Medium", website:"wcu.edu.et", mapQ:"Wachemo+University+Hosaena", faculties:["Natural Science","Business","Social Science","Agriculture","Medicine & Health","Engineering","Education"], scholarships:"Govt-funded regular students" },
+  { name:"Wolkite University", emoji:"🌾", location:"Wolkite, South Ethiopia", region:"South Ethiopia", type:"Public", founded:2012, cutoff:305, students:"Medium", website:"wku.edu.et", mapQ:"Wolkite+University", faculties:["Natural Science","Business","Social Science","Agriculture","Medicine & Health","Engineering","Education"], scholarships:"Govt-funded regular students" },
+  { name:"Mizan-Tepi University", emoji:"🌴", location:"Mizan Teferi & Tepi, South Ethiopia", region:"South Ethiopia", type:"Public", founded:2006, cutoff:305, students:"Medium (multi-campus)", website:"mtu.edu.et", mapQ:"Mizan-Tepi+University", faculties:["Agriculture","Business","Social Science","Natural Science","Medicine & Health","Education"], scholarships:"Govt funding" },
+  { name:"Madda Walabu University", emoji:"🦁", location:"Bale Robe, Oromia", region:"Oromia", type:"Public", founded:2007, cutoff:305, students:"Medium", website:"mwu.edu.et", mapQ:"Madda+Walabu+University", faculties:["Agriculture","Business","Social Science","Natural Science","Medicine & Health","Education","Law"], scholarships:"Govt-funded regular students" },
+  { name:"Gambella University", emoji:"🌊", location:"Gambella, Gambella Region", region:"Gambella", type:"Public", founded:2012, cutoff:290, students:"Small (regional)", website:"gu.edu.et", mapQ:"Gambella+University", faculties:["Natural Science","Agriculture","Business","Social Science","Education"], scholarships:"Govt-funded regular students" },
+  { name:"Jinka University", emoji:"🦒", location:"Jinka, South Ethiopia", region:"South Ethiopia", type:"Public", founded:2013, cutoff:290, students:"Small-medium", website:"", mapQ:"Jinka+University+Ethiopia", faculties:["Agriculture","Business","Social Science","Natural Science","Education"], scholarships:"Govt funding" },
+  { name:"Raya University", emoji:"🏜️", location:"Maichew, Tigray", region:"Tigray", type:"Public", founded:2014, cutoff:295, students:"Small (regional)", website:"", mapQ:"Raya+University+Maichew", faculties:["Agriculture","Business","Social Science","Natural Science","Education"], scholarships:"Govt-funded students" },
+  { name:"Selale University", emoji:"🌿", location:"Fiche, Oromia", region:"Oromia", type:"Public", founded:2014, cutoff:295, students:"Small-medium", website:"", mapQ:"Selale+University+Fiche+Ethiopia", faculties:["Natural Science","Social Science","Business","Agriculture","Education"], scholarships:"Govt funding" },
+  { name:"Woldiya University", emoji:"🏔️", location:"Woldiya, Amhara", region:"Amhara", type:"Public", founded:2010, cutoff:305, students:"Medium", website:"wdu.edu.et", mapQ:"Woldiya+University", faculties:["Natural Science","Social Science","Business","Agriculture","Medicine & Health","Engineering","Education"], scholarships:"Govt-funded regular students" },
+  { name:"Adigrat University", emoji:"🪨", location:"Adigrat, Tigray", region:"Tigray", type:"Public", founded:2009, cutoff:305, students:"Medium", website:"adu.edu.et", mapQ:"Adigrat+University", faculties:["Natural Science","Social Science","Business","Agriculture","Medicine & Health","Engineering","Education"], scholarships:"Govt funding" },
+  { name:"Aksum University", emoji:"🏺", location:"Aksum, Tigray", region:"Tigray", type:"Public", founded:2007, cutoff:305, students:"Medium", website:"aku.edu.et", mapQ:"Aksum+University", faculties:["Agriculture","Social Science","Business","Natural Science","Engineering","Medicine & Health","Education"], scholarships:"Govt-funded regular students" },
+  { name:"Metu University", emoji:"🌲", location:"Metu, Oromia", region:"Oromia", type:"Public", founded:2012, cutoff:290, students:"Small-medium (regional)", website:"", mapQ:"Metu+University+Oromia", faculties:["Natural Science","Social Science","Business","Agriculture","Education"], scholarships:"Govt-funded regular students" },
+  { name:"Bule Hora University", emoji:"🌄", location:"Bule Hora, Oromia", region:"Oromia", type:"Public", founded:2011, cutoff:290, students:"Small-medium", website:"", mapQ:"Bule+Hora+University", faculties:["Natural Science","Social Science","Business","Agriculture","Medicine & Health","Education"], scholarships:"Govt-funded regular students" },
+  { name:"Injibara University", emoji:"🌱", location:"Injibara, Amhara", region:"Amhara", type:"Public", founded:2014, cutoff:285, students:"Small (newer)", website:"", mapQ:"Injibara+University+Amhara", faculties:["Natural Science","Social Science","Business","Agriculture","Education"], scholarships:"Govt-funded regular students" },
+];
+
+let selected = [];
+
+function toggleTheme() {
+  const html = document.documentElement;
+  const btn = document.getElementById('themeBtn');
+  if (html.getAttribute('data-theme') === 'dark') {
+    html.setAttribute('data-theme', 'light');
+    btn.textContent = '🌙 Dark Mode';
+  } else {
+    html.setAttribute('data-theme', 'dark');
+    btn.textContent = '☀️ Light Mode';
+  }
+}
+
+function getFiltered() {
+  const search = document.getElementById('searchInput').value.toLowerCase();
+  const region = document.getElementById('regionFilter').value;
+  const type = document.getElementById('typeFilter').value;
+  const faculty = document.getElementById('facultyFilter').value;
+  const sort = document.getElementById('sortFilter').value;
+
+  let list = universities.filter(u => {
+    if (search && !u.name.toLowerCase().includes(search) && !u.location.toLowerCase().includes(search)) return false;
+    if (region && u.region !== region) return false;
+    if (type && u.type !== type) return false;
+    if (faculty && !u.faculties.includes(faculty)) return false;
+    return true;
+  });
+
+  list.sort((a,b) => {
+    if (sort === 'cutoff') return b.cutoff - a.cutoff;
+    if (sort === 'founded') return a.founded - b.founded;
+    return a.name.localeCompare(b.name);
+  });
+  return list;
+}
+
+function renderCards() {
+  const list = getFiltered();
+  const grid = document.getElementById('grid');
+  document.getElementById('showingCount').textContent = list.length;
+
+  if (list.length === 0) {
+    grid.innerHTML = `<div class="no-results"><span class="emoji">🔍</span><strong>No universities found</strong><br><br>Try adjusting your filters</div>`;
+    return;
+  }
+
+  grid.innerHTML = list.map((u, i) => {
+    const isSelected = selected.some(s => s.name === u.name);
+    const idx = universities.indexOf(u);
+    const cutoffDisplay = u.type === 'Private' ? 'Pass Mark' : u.cutoff;
+    
+    return `
+    <div class="card" style="animation-delay:${i*0.05}s">
+      <div class="card-header">
+        <div class="uni-emoji">${u.emoji}</div>
+        <div>
+          <div class="uni-name">${u.name}</div>
+          <div class="uni-location">📍 ${u.location} &nbsp; <span class="badge badge-${u.type.toLowerCase()}">${u.type}</span></div>
+        </div>
+      </div>
+      <div class="card-body">
+        <div class="info-row"><span class="info-label">Founded</span><span class="info-value">${u.founded}</span></div>
+        <div class="info-row"><span class="info-label">Students</span><span class="info-value">${u.students}</span></div>
+        <div class="info-row" title="Estimated minimum score needed on the EUEE">
+          <span class="info-label">EUEE Min. (Est)</span>
+          <span class="info-value cutoff-value">${cutoffDisplay}</span>
+        </div>
+        <div class="info-row"><span class="info-label">Website</span><span class="info-value">${u.website ? `<a href="https://${u.website}" target="_blank">${u.website}</a>` : '<span style="color:var(--muted);font-size:0.8rem">Not listed</span>'}</span></div>
+        <div class="faculties">${u.faculties.map(f=>`<span class="faculty-tag">${f}</span>`).join('')}</div>
+        
+        <div class="card-actions">
+          <button class="add-compare ${isSelected?'selected':''}" onclick="toggleCompare(${idx}, this)">
+            ${isSelected ? '✓ Compare' : '+ Compare'}
+          </button>
+          <a class="map-btn" href="https://www.google.com/maps/search/?api=1&query=${u.mapQ}" target="_blank" title="View on Map">🗺️</a>
+        </div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function toggleCompare(idx, btn) {
+  const u = universities[idx];
+  const existing = selected.findIndex(s => s.name === u.name);
+  if (existing >= 0) {
+    selected.splice(existing, 1);
+  } else {
+    if (selected.length >= 4) { alert('You can compare a maximum of 4 universities at a time.'); return; }
+    selected.push(u);
+  }
+  updateCompareBar();
+  renderCards(); // Refresh buttons
+}
+
+function updateCompareBar() {
+  const bar = document.getElementById('compareBar');
+  const names = document.getElementById('compareNames');
+  if (selected.length === 0) { bar.classList.remove('active'); return; }
+  bar.classList.add('active');
+  names.innerHTML = selected.map((u,i) => `
+    <div class="compare-chip">
+      ${u.emoji} ${u.name.split(' ').slice(0,2).join(' ')}
+      <button onclick="removeCompare(${i})">×</button>
+    </div>`).join('');
+}
+
+function removeCompare(i) { selected.splice(i,1); updateCompareBar(); renderCards(); }
+function clearCompare() { selected=[]; updateCompareBar(); renderCards(); }
+
+function openCompare() {
+  if (selected.length < 2) { alert('Please select at least 2 universities to compare.'); return; }
+  const rows = [
+    ['Location', u=>u.location],
+    ['Type', u=>u.type],
+    ['Founded', u=>u.founded],
+    ['Students', u=>u.students],
+    ['EUEE Threshold', u=>`<span class="highlight">${u.type === 'Private' ? 'Pass Mark' : u.cutoff}</span>`],
+    ['Scholarships', u=>u.scholarships],
+    ['Faculties', u=>u.faculties.join(', ')],
+    ['Website', u=>u.website ? `<a href="https://${u.website}" target="_blank">${u.website}</a>` : 'Not listed'],
+  ];
+  const thead = `<tr><th>Criteria</th>${selected.map(u=>`<th>${u.emoji} ${u.name}</th>`).join('')}</tr>`;
+  const tbody = rows.map(([label,fn])=>`<tr><td class="row-label">${label}</td>${selected.map(u=>`<td>${fn(u)}</td>`).join('')}</tr>`).join('');
+  document.getElementById('compareTable').innerHTML = thead+tbody;
+  document.getElementById('modalOverlay').classList.add('active');
+}
+
+function closeCompare() { document.getElementById('modalOverlay').classList.remove('active'); }
+
+function exportCSV() {
+  if(selected.length === 0) return;
+  let csvContent = "data:text/csv;charset=utf-8,Criteria,";
+  csvContent += selected.map(u => `"${u.name}"`).join(",") + "\n";
+  
+  const rawRows = [
+    ['Location', u=>u.location],
+    ['Type', u=>u.type],
+    ['Founded', u=>u.founded],
+    ['Students', u=>u.students],
+    ['EUEE Threshold', u=>u.type === 'Private' ? 'Pass Mark' : u.cutoff],
+    ['Scholarships', u=>u.scholarships],
+    ['Faculties', u=>u.faculties.join('; ')],
+    ['Website', u=>u.website || 'Not listed'],
+  ];
+
+  rawRows.forEach(row => {
+    let rowData = `"${row[0]}",` + selected.map(u => `"${row[1](u)}"`).join(",");
+    csvContent += rowData + "\n";
+  });
+
+  const encodedUri = encodeURI(csvContent);
+  const link = document.createElement("a");
+  link.setAttribute("href", encodedUri);
+  link.setAttribute("download", "university_comparison.csv");
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+}
+
+function resetFilters() {
+  document.getElementById('searchInput').value='';
+  document.getElementById('regionFilter').value='';
+  document.getElementById('typeFilter').value='';
+  document.getElementById('facultyFilter').value='';
+  document.getElementById('sortFilter').value='name';
+  renderCards();
+}
+
+document.getElementById('totalCount').textContent = universities.length;
+document.getElementById('searchInput').addEventListener('input', renderCards);
+document.getElementById('regionFilter').addEventListener('change', renderCards);
+document.getElementById('typeFilter').addEventListener('change', renderCards);
+document.getElementById('facultyFilter').addEventListener('change', renderCards);
+document.getElementById('modalOverlay').addEventListener('click', function(e){ if(e.target===this) closeCompare(); });
+
+renderCards();
+</script>
+</body>
+</html>
